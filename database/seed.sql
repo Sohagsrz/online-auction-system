@@ -2,20 +2,35 @@ USE online_auction_system;
 
 -- Disable foreign key checks for clean wiping
 SET FOREIGN_KEY_CHECKS = 0;
-TRUNCATE TABLE platform_fees;
-TRUNCATE TABLE auction_templates;
-TRUNCATE TABLE warnings;
-TRUNCATE TABLE user_reports;
-TRUNCATE TABLE listing_reports;
-TRUNCATE TABLE reviews;
-TRUNCATE TABLE seller_verification_requests;
-TRUNCATE TABLE watchlist;
-TRUNCATE TABLE auto_bids;
-TRUNCATE TABLE bids;
-TRUNCATE TABLE listing_images;
-TRUNCATE TABLE listings;
-TRUNCATE TABLE categories;
-TRUNCATE TABLE users;
+DELETE FROM platform_fees;
+DELETE FROM auction_templates;
+DELETE FROM warnings;
+DELETE FROM user_reports;
+DELETE FROM listing_reports;
+DELETE FROM reviews;
+DELETE FROM seller_verification_requests;
+DELETE FROM watchlist;
+DELETE FROM auto_bids;
+DELETE FROM bids;
+DELETE FROM listing_images;
+DELETE FROM listings;
+DELETE FROM categories;
+DELETE FROM users;
+
+ALTER TABLE platform_fees AUTO_INCREMENT = 1;
+ALTER TABLE auction_templates AUTO_INCREMENT = 1;
+ALTER TABLE warnings AUTO_INCREMENT = 1;
+ALTER TABLE user_reports AUTO_INCREMENT = 1;
+ALTER TABLE listing_reports AUTO_INCREMENT = 1;
+ALTER TABLE reviews AUTO_INCREMENT = 1;
+ALTER TABLE seller_verification_requests AUTO_INCREMENT = 1;
+ALTER TABLE watchlist AUTO_INCREMENT = 1;
+ALTER TABLE auto_bids AUTO_INCREMENT = 1;
+ALTER TABLE bids AUTO_INCREMENT = 1;
+ALTER TABLE listing_images AUTO_INCREMENT = 1;
+ALTER TABLE listings AUTO_INCREMENT = 1;
+ALTER TABLE categories AUTO_INCREMENT = 1;
+ALTER TABLE users AUTO_INCREMENT = 1;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- All passwords are 'password123' 
