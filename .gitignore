@@ -1,0 +1,6 @@
+*.md
+!README.md
+member1_buyer/
+member2_seller/
+member3_moderator/
+member4_admin/

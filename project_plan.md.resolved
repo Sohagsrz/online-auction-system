@@ -1,0 +1,68 @@
+# Online Auction System - Project Plan
+
+Based on the `desc.md` requirements, the project will be divided into four completely independent parts, one for each group member. Since the requirements state that members should **NOT** rely on each other for session management, DB connection, or logic, each member will have their own self-contained MVC folder structure. 
+
+We will create a shared `database.sql` file that contains the schema for all members to import, but the codebases will be isolated.
+
+## Project Structure
+
+```text
+/oas
+├── database.sql           # Shared DB schema for all 4 members
+├── /member1_buyer         # Member 1's code (Buyer Role)
+│   ├── /config            # db.php (mysqli connection)
+│   ├── /controllers       # Buyer controllers (AuthController, AuctionController, BidController)
+│   ├── /models            # Buyer models (User, Listing, Bid, Watchlist)
+│   ├── /views             # UI (Login, Dashboard, Browse, Auction Details)
+│   ├── /assets            # CSS, JS (AJAX bidding)
+│   ├── index.php          # Entry point / Routing
+│   └── mycode.md          # Member 1's specific code and report
+├── /member2_seller        # Member 2's code (Seller Role)
+│   ├── /config
+│   ├── /controllers       # AuthController, ListingController, TemplateController
+│   ├── /models            # User, Listing, Image, Template, Analytics
+│   ├── /views             # Dashboard, Create Listing, Live Bids, Analytics
+│   ├── /assets            # CSS, JS (AJAX live bid view)
+│   ├── index.php          
+│   └── mycode.md          
+├── /member3_moderator     # Member 3's code (Moderator Role)
+│   ├── /config
+│   ├── /controllers       # AuthController, ModerationController, CategoryController
+│   ├── /models            # Listing, Category, Report, Warning
+│   ├── /views             # Moderation Dashboard, Reports View, Category Manager
+│   ├── /assets            # CSS, JS (AJAX category update or tag abuse filtering)
+│   ├── index.php          
+│   └── mycode.md          
+└── /member4_admin         # Member 4's code (Admin Role)
+    ├── /config
+    ├── /controllers       # AuthController, AdminController, FinanceController
+    ├── /models            # User, PlatformFee, VerificationRequest
+    ├── /views             # Admin Dashboard, User Management, Financial Reports
+    ├── /assets            # CSS, JS (AJAX user status toggle)
+    ├── index.php          
+    └── mycode.md          
+```
+
+## Role Assignments & Features
+
+### Member 1: Buyer
+- **Core Focus:** Browsing auctions, bidding, and account management.
+- **Key Features:** Register/Login, Browse with filters (AJAX), View Details (countdown), Manual/Auto Bidding, Watchlist, Post-transaction Reviews.
+
+### Member 2: Seller
+- **Core Focus:** Creating and managing listings, tracking performance.
+- **Key Features:** Verification requests, CRUD for listings and templates, live bid viewing (AJAX refresh), relisting, seller analytics.
+
+### Member 3: Moderator
+- **Core Focus:** Platform safety and category management.
+- **Key Features:** Review new listings, handle user/listing reports, issue warnings, manage category taxonomy, moderation activity report.
+
+### Member 4: Admin
+- **Core Focus:** Governance, users, and financials.
+- **Key Features:** Dashboard stats, verify sellers, manage all users, set platform fees, financial reports, platform announcements.
+
+## Technical Standards to Follow
+1. **Raw PHP & MySQLi:** No frameworks. Prepared statements for all DB interactions.
+2. **MVC Pattern:** Strict separation of Models, Views, and Controllers.
+3. **Independent Sessions:** Each folder manages its own session state.
+4. **AJAX:** At least one JSON API endpoint and `XMLHttpRequest` fetch implementation per member.
