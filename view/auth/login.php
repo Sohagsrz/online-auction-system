@@ -3,7 +3,10 @@
 <div class="auth-container">
     <h2>Login</h2>
     <?php if (isset($error)): ?>
-        <p class="error"><?= htmlspecialchars($error) ?></p>
+        <p class="error" style="color: red; margin-bottom: 1rem;"><?= htmlspecialchars($error) ?></p>
+    <?php endif; ?>
+    <?php if (isset($_GET['registered']) && $_GET['registered'] === 'true'): ?>
+        <p class="success" style="color: green; margin-bottom: 1rem;">Registration successful! Please login.</p>
     <?php endif; ?>
     <form action="index.php?page=login" method="POST">
         <div class="form-group">

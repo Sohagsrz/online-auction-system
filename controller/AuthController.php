@@ -52,7 +52,40 @@ function auth_login() {
 }
 
 function auth_register() {
-    // Basic Registration logic
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        global $conn;
+        require_once 'model/user_model.php';
+
+        $name = trim($_POST['name']);
+        $email = trim($_POST['email']);
+        $password = $_POST['password'];
+        $role = isset($_POST['role']) ? $_POST['role'] : 'buyer';
+
+        // Validate role to prevent tampering
+        if (!in_array($role, ['buyer', 'seller'])) {
+            $role = 'buyer';
+        }
+
+        if (empty($name) || empty($email) || empty($password)) {
+            $error = "All fields are required.";
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = "Invalid email format.";
+        } elseif (strlen($password) < 6) {
+            $error = "Password must be at least 6 characters long.";
+        } else {
+            $existing_user = get_user_by_email($conn, $email);
+            if ($existing_user) {
+                $error = "Email already registered.";
+            } else {
+                if (create_user($conn, $name, $email, $password, $role)) {
+                    header("Location: index.php?page=login&registered=true");
+                    exit();
+                } else {
+                    $error = "Registration failed. Please try again.";
+                }
+            }
+        }
+    }
     require 'view/auth/register.php';
 }
 
