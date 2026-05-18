@@ -1,5 +1,6 @@
 <?php
 require_once 'model/listing_model.php';
+require_once 'model/user_model.php';
 
 function seller_check_auth() {
     if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'seller') {
@@ -20,6 +21,9 @@ function seller_handle_request($page) {
         case 'seller_analytics':
             seller_analytics();
             break;
+        case 'seller_verification':
+            seller_verification();
+            break;
         case 'seller_dashboard':
         default:
             seller_dashboard();
@@ -31,11 +35,67 @@ function seller_dashboard() {
     global $conn;
     $seller_id = $_SESSION['user_id'];
     
-    // Check if seller is verified
-    $res = $conn->query("SELECT seller_verified FROM users WHERE id = $seller_id");
-    $is_verified = $res->fetch_assoc()['seller_verified'] ?? 0;
-    
+    $res = $conn->prepare("SELECT seller_verified FROM users WHERE id = ?");
+    $res->bind_param("i", $seller_id);
+    $res->execute();
+    $is_verified = $res->get_result()->fetch_assoc()['seller_verified'] ?? 0;
+
+    $stmt = $conn->prepare("SELECT * FROM seller_verification_requests WHERE user_id = ? ORDER BY submitted_at DESC LIMIT 1");
+    $stmt->bind_param("i", $seller_id);
+    $stmt->execute();
+    $verification_request = $stmt->get_result()->fetch_assoc();
+
     require 'view/seller/dashboard.php';
+}
+
+function seller_verification() {
+    global $conn;
+    $seller_id = $_SESSION['user_id'];
+    $message = '';
+    $error = '';
+
+    $stmt = $conn->prepare("SELECT seller_verified FROM users WHERE id = ?");
+    $stmt->bind_param("i", $seller_id);
+    $stmt->execute();
+    $is_verified = $stmt->get_result()->fetch_assoc()['seller_verified'] ?? 0;
+
+    $stmt = $conn->prepare("SELECT * FROM seller_verification_requests WHERE user_id = ? ORDER BY submitted_at DESC LIMIT 1");
+    $stmt->bind_param("i", $seller_id);
+    $stmt->execute();
+    $verification_request = $stmt->get_result()->fetch_assoc();
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if ($is_verified) {
+            $error = 'Your seller account is already verified.';
+        } elseif (!empty($verification_request) && $verification_request['status'] === 'pending') {
+            $error = 'You already have a pending verification request. Please wait for admin review.';
+        } else {
+            $motivation = trim($_POST['motivation'] ?? '');
+            if (empty($motivation)) {
+                $error = 'Please provide a motivation for verification.';
+            } elseif (empty($_FILES['id_document']['name']) || $_FILES['id_document']['error'] !== UPLOAD_ERR_OK) {
+                $error = 'Please upload a valid verification document.';
+            } else {
+                if (!is_dir('assets/uploads/verification_docs')) {
+                    mkdir('assets/uploads/verification_docs', 0777, true);
+                }
+                $ext = pathinfo($_FILES['id_document']['name'], PATHINFO_EXTENSION);
+                $filename = 'assets/uploads/verification_docs/seller_' . $seller_id . '_' . time() . '.' . $ext;
+                if (move_uploaded_file($_FILES['id_document']['tmp_name'], $filename)) {
+                    if (create_seller_verification_request($conn, $seller_id, $motivation, $filename)) {
+                        $message = 'Verification request submitted successfully. Please wait for admin approval.';
+                        $verification_request = get_latest_seller_verification_request($conn, $seller_id);
+                    } else {
+                        $error = 'Failed to save verification request. Please try again.';
+                    }
+                } else {
+                    $error = 'Failed to upload document. Please try again.';
+                }
+            }
+        }
+    }
+
+    require 'view/seller/verification.php';
 }
 
 function seller_listings() {
@@ -66,47 +126,56 @@ function seller_listings() {
 
 function seller_create() {
     global $conn;
-    
+    $seller_id = $_SESSION['user_id'];
+
+    $stmt = $conn->prepare("SELECT seller_verified FROM users WHERE id = ?");
+    $stmt->bind_param("i", $seller_id);
+    $stmt->execute();
+    $is_verified = $stmt->get_result()->fetch_assoc()['seller_verified'] ?? 0;
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $seller_id = $_SESSION['user_id'];
-        $title = $_POST['title'];
-        $description = $_POST['description'];
-        $category_id = $_POST['category_id'];
-        $item_condition = $_POST['item_condition'];
-        $starting_price = $_POST['starting_price'];
-        $reserve_price = $_POST['reserve_price'] ?: null;
-        $end_datetime = $_POST['end_datetime'];
-        
-        $stmt = $conn->prepare("INSERT INTO listings (seller_id, category_id, title, description, item_condition, starting_price, reserve_price, current_bid, end_datetime, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_review')");
-        $stmt->bind_param("iisssddds", $seller_id, $category_id, $title, $description, $item_condition, $starting_price, $reserve_price, $starting_price, $end_datetime);
-        
-        if ($stmt->execute()) {
-            $listing_id = $conn->insert_id;
+        if (!$is_verified) {
+            $error = 'You must complete seller verification before creating a listing.';
+        } else {
+            $title = $_POST['title'];
+            $description = $_POST['description'];
+            $category_id = $_POST['category_id'];
+            $item_condition = $_POST['item_condition'];
+            $starting_price = $_POST['starting_price'];
+            $reserve_price = $_POST['reserve_price'] ?: null;
+            $end_datetime = $_POST['end_datetime'];
             
-            // Handle image uploads
-            if (!empty($_FILES['images']['name'][0])) {
-                if (!is_dir('assets/uploads')) mkdir('assets/uploads', 0777, true);
+            $stmt = $conn->prepare("INSERT INTO listings (seller_id, category_id, title, description, item_condition, starting_price, reserve_price, current_bid, end_datetime, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_review')");
+            $stmt->bind_param("iisssddds", $seller_id, $category_id, $title, $description, $item_condition, $starting_price, $reserve_price, $starting_price, $end_datetime);
+            
+            if ($stmt->execute()) {
+                $listing_id = $conn->insert_id;
                 
-                $uploaded_count = 0;
-                foreach ($_FILES['images']['tmp_name'] as $key => $tmp_name) {
-                    if ($uploaded_count >= 5) break; // Max 5 images
-                    if ($_FILES['images']['error'][$key] === UPLOAD_ERR_OK) {
-                        $ext = pathinfo($_FILES['images']['name'][$key], PATHINFO_EXTENSION);
-                        $filename = 'assets/uploads/listing_' . $listing_id . '_' . $key . '_' . time() . '.' . $ext;
-                        if (move_uploaded_file($tmp_name, $filename)) {
-                            $img_stmt = $conn->prepare("INSERT INTO listing_images (listing_id, image_path, display_order) VALUES (?, ?, ?)");
-                            $img_stmt->bind_param("isi", $listing_id, $filename, $key);
-                            $img_stmt->execute();
-                            $uploaded_count++;
+                // Handle image uploads
+                if (!empty($_FILES['images']['name'][0])) {
+                    if (!is_dir('assets/uploads')) mkdir('assets/uploads', 0777, true);
+                    
+                    $uploaded_count = 0;
+                    foreach ($_FILES['images']['tmp_name'] as $key => $tmp_name) {
+                        if ($uploaded_count >= 5) break; // Max 5 images
+                        if ($_FILES['images']['error'][$key] === UPLOAD_ERR_OK) {
+                            $ext = pathinfo($_FILES['images']['name'][$key], PATHINFO_EXTENSION);
+                            $filename = 'assets/uploads/listing_' . $listing_id . '_' . $key . '_' . time() . '.' . $ext;
+                            if (move_uploaded_file($tmp_name, $filename)) {
+                                $img_stmt = $conn->prepare("INSERT INTO listing_images (listing_id, image_path, display_order) VALUES (?, ?, ?)");
+                                $img_stmt->bind_param("isi", $listing_id, $filename, $key);
+                                $img_stmt->execute();
+                                $uploaded_count++;
+                            }
                         }
                     }
                 }
+                
+                header("Location: index.php?page=seller_listings");
+                exit();
+            } else {
+                $error = "Failed to create listing.";
             }
-            
-            header("Location: index.php?page=seller_listings");
-            exit();
-        } else {
-            $error = "Failed to create listing.";
         }
     }
     

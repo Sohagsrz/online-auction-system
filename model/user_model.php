@@ -48,4 +48,17 @@ function update_seller_verification_request($conn, $id, $status, $reviewed_by) {
     $stmt->bind_param("sii", $status, $reviewed_by, $id);
     return $stmt->execute();
 }
+
+function create_seller_verification_request($conn, $user_id, $motivation, $id_document_path) {
+    $stmt = $conn->prepare("INSERT INTO seller_verification_requests (user_id, motivation, id_document_path) VALUES (?, ?, ?)");
+    $stmt->bind_param("iss", $user_id, $motivation, $id_document_path);
+    return $stmt->execute();
+}
+
+function get_latest_seller_verification_request($conn, $user_id) {
+    $stmt = $conn->prepare("SELECT * FROM seller_verification_requests WHERE user_id = ? ORDER BY submitted_at DESC LIMIT 1");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_assoc();
+}
 ?>

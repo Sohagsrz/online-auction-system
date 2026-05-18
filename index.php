@@ -29,6 +29,7 @@ switch($page) {
     case 'seller_listings':
     case 'seller_create':
     case 'seller_analytics':
+    case 'seller_verification':
         require_once 'controller/SellerController.php';
         seller_handle_request($page);
         break;
