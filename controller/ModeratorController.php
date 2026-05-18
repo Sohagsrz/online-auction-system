@@ -67,6 +67,59 @@ function mod_reports() {
 
 function mod_categories() {
     global $conn;
+
+    $message = '';
+    $error = '';
+    $edit_category = null;
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+        $action = $_POST['action'];
+        $name = trim($_POST['name'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $parent_id = isset($_POST['parent_id']) && $_POST['parent_id'] !== '' ? intval($_POST['parent_id']) : null;
+
+        if ($action === 'create_category') {
+            if ($name === '') {
+                $error = 'Category name is required.';
+            } else {
+                if (create_category($conn, $name, $description, $parent_id)) {
+                    $message = 'Category created successfully.';
+                } else {
+                    $error = 'Failed to create category: ' . $conn->error;
+                }
+            }
+        } elseif ($action === 'update_category') {
+            $category_id = intval($_POST['category_id'] ?? 0);
+            if ($category_id <= 0 || $name === '') {
+                $error = 'Valid category and name are required.';
+            } else {
+                if (update_category($conn, $category_id, $name, $description, $parent_id)) {
+                    $message = 'Category updated successfully.';
+                } else {
+                    $error = 'Failed to update category: ' . $conn->error;
+                }
+            }
+        } elseif ($action === 'delete_category') {
+            $category_id = intval($_POST['category_id'] ?? 0);
+            if ($category_id <= 0) {
+                $error = 'Valid category is required.';
+            } else {
+                if (delete_category($conn, $category_id)) {
+                    $message = 'Category deleted successfully.';
+                } else {
+                    $error = 'Failed to delete category: ' . $conn->error;
+                }
+            }
+        }
+    }
+
+    if (isset($_GET['edit_id'])) {
+        $edit_id = intval($_GET['edit_id']);
+        if ($edit_id > 0) {
+            $edit_category = get_category_by_id($conn, $edit_id);
+        }
+    }
+
     $categories = get_all_categories($conn);
     require 'view/moderator/categories.php';
 }
