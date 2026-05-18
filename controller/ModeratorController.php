@@ -103,6 +103,10 @@ function mod_categories() {
             $category_id = intval($_POST['category_id'] ?? 0);
             if ($category_id <= 0) {
                 $error = 'Valid category is required.';
+            } elseif (category_has_children($conn, $category_id)) {
+                $error = 'Cannot delete category because it has child categories.';
+            } elseif (category_has_listings($conn, $category_id)) {
+                $error = 'Cannot delete category because it is used by one or more listings.';
             } else {
                 if (delete_category($conn, $category_id)) {
                     $message = 'Category deleted successfully.';

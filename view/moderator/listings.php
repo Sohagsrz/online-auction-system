@@ -34,12 +34,14 @@
 </div>
 
 <script>
-// AJAX function for Member 3 Moderator
+// AJAX function
 function updateListing(listingId, action) {
     if (!confirm('Are you sure you want to ' + action + ' this listing?')) return;
     
     var xhr = new XMLHttpRequest();
+
     xhr.open('POST', 'index.php?page=mod_listings', true);
+    
     xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
 
     xhr.onreadystatechange = function() {

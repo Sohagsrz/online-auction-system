@@ -6,7 +6,6 @@ $db   = 'online_auction_system';
 $user = 'root';
 $pass = '';
 
-mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 try {
     $conn = new mysqli($host, $user, $pass, $db);

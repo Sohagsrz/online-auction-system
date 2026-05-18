@@ -36,4 +36,16 @@ function update_user_status($conn, $id, $is_active) {
     $stmt->bind_param("ii", $is_active, $id);
     return $stmt->execute();
 }
+
+function set_seller_verified($conn, $id, $is_verified) {
+    $stmt = $conn->prepare("UPDATE users SET seller_verified = ? WHERE id = ?");
+    $stmt->bind_param("ii", $is_verified, $id);
+    return $stmt->execute();
+}
+
+function update_seller_verification_request($conn, $id, $status, $reviewed_by) {
+    $stmt = $conn->prepare("UPDATE seller_verification_requests SET status = ?, reviewed_by = ? WHERE id = ?");
+    $stmt->bind_param("sii", $status, $reviewed_by, $id);
+    return $stmt->execute();
+}
 ?>

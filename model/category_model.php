@@ -29,6 +29,22 @@ function update_category($conn, $id, $name, $description, $parent_id = null) {
     return $stmt->execute();
 }
 
+function category_has_children($conn, $id) {
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM categories WHERE parent_id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result()->fetch_assoc();
+    return ($result['count'] ?? 0) > 0;
+}
+
+function category_has_listings($conn, $id) {
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM listings WHERE category_id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result()->fetch_assoc();
+    return ($result['count'] ?? 0) > 0;
+}
+
 function delete_category($conn, $id) {
     $stmt = $conn->prepare("DELETE FROM categories WHERE id = ?");
     $stmt->bind_param("i", $id);

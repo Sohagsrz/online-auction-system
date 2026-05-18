@@ -67,6 +67,39 @@ function admin_users() {
 
 function admin_sellers() {
     global $conn;
+    $message = '';
+    $error = '';
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+        $action = $_POST['action'];
+        $request_id = intval($_POST['request_id'] ?? 0);
+        $admin_id = $_SESSION['user_id'];
+
+        if ($request_id <= 0) {
+            $error = 'Invalid verification request.';
+        } else {
+            $status = $action === 'approve_verification' ? 'approved' : 'rejected';
+
+            $stmt = $conn->prepare("SELECT user_id FROM seller_verification_requests WHERE id = ?");
+            $stmt->bind_param("i", $request_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $request = $result->fetch_assoc();
+
+            if (!$request) {
+                $error = 'Verification request not found.';
+            } else {
+                $user_id = $request['user_id'];
+                if (update_seller_verification_request($conn, $request_id, $status, $admin_id)) {
+                    set_seller_verified($conn, $user_id, $status === 'approved' ? 1 : 0);
+                    $message = $status === 'approved' ? 'Seller verification approved.' : 'Seller verification rejected.';
+                } else {
+                    $error = 'Failed to update verification request.';
+                }
+            }
+        }
+    }
+
     // Fetch seller requests
     $result = $conn->query("SELECT svr.*, u.name as user_name, u.email FROM seller_verification_requests svr JOIN users u ON svr.user_id = u.id");
     $requests = [];
